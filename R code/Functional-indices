@@ -1,0 +1,46 @@
+###############################################################
+## Functions for transforming the community and             ##   
+## trait matrices into functional indices                   ##
+##############################################################
+
+
+library(FD)
+library(ade4)
+library(vegan)
+library(picante)
+library(sp)
+library(rgdal)
+
+
+#####Functional Divergence vector
+
+FDiv.vector <- function(x,y){
+  #x = community matrix
+  #y = traits matrix
+  #verify that traits sp coincide with community sp
+  y<- y[colnames(x),]
+  z<-dbFD(y, x)$FDiv
+  return(z)
+}
+
+
+##Functional Richness vector
+FRic.vector <- function(x,y){
+  #x = community matrix
+  #y = traits matrix
+  #verify that traits sp coincide with community sp
+  y<- y[colnames(x),]
+  z<-dbFD(y, x)$FRic
+  return(z)
+}
+
+
+##functional eveness vector
+FEve.vector <- function(x,y){
+  #x = community matrix
+  #y = traits matrix
+  #verify that traits sp coincide with community sp
+  y<- y[colnames(x),]
+  z<-dbFD(y, x)$FEve
+  return(z)
+}
