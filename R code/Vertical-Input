@@ -1,0 +1,214 @@
+#################################
+###  Vertical dynamic analysis ##
+### species and functional    ##    
+### composition               ##
+################################
+
+library(FD)
+library(ade4)
+library(vegan)
+library(picante)
+library(sp)
+library(rgdal)
+
+###loading vertical dynamic matrix###
+vertical <- read.table("vertical.dyn.txt", sep = "", header = TRUE, row.names = 1)
+View(vertical)
+
+###loading community matrix ###
+community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
+View(community)
+community.1 <- community[,-17] ###without Geonoma brevispath
+View(community.1)
+colnames(community)
+
+
+
+###########ANCOVA FOR DIVERSITY colapsing C/N in the dyn.traits#########################
+
+library(tibble)
+library(tidyr)
+library(bbmle)
+ver.tem <- read.table("ver.tem.txt", sep = "", header = TRUE)
+head(ver.tem[,1:2])
+
+ver.tem <- ver.tem %>% `row.names<-`(ver.tem$Community) %>%
+  select(-c(Community, Month, Geonoma_brevispath)) %>%
+  filter_all(any_vars(.>0))###removing communities with no values
+rownames(ver.tem)
+colnames(ver.tem)
+###########Fdivergence###########################
+
+###functional divergence for the 6 communities at the 4 climatic periods##
+##changing the dyn.traits and dividing C between N##
+dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
+  mutate(c.n = C/N)%>%
+  select(-c(C,N))%>%
+  drop_na()%>%
+  column_to_rownames("species")
+
+dyn.traits.cn <- dyn.traits.cn[-11,]
+
+
+###########Fdivergence###########################
+
+
+ver.tem.div <- FDiv.vector(ver.tem, dyn.traits.cn)
+mean(ver.tem.div[-7])
+sd(ver.tem.div[-7])
+month.ver <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.div.ver <- FDiv.vector(community.1, com.traits.1)##riparian community functional diversity
+com.div.ver <- rep(com.div.ver, 4)
+ver.data.div <- data.frame(ver.tem.div, month.ver, com.div.ver)##data frame
+colnames(ver.data.div) <- c("ver.div", "Month", "com.div")
+ver.data.div$Month <- as.factor(ver.data.div$Month) #month as factor
+
+
+##normality
+hist(ver.tem.div)
+qqnorm(ver.tem.div)
+qqline(ver.tem.div)
+shapiro.test(ver.tem.div)
+
+##plotting
+plot(com.div.ver, ver.tem.div, ty="n")
+points(ver.data.div$com.div[c(1:6)],ver.data.div$ver.div[c(1:6)])
+points(ver.data.div$com.div[7:12],ver.data.div$ver.div[7:12],pch=16)
+points(ver.data.div$com.div[13:18],ver.data.div$ver.div[13:18], pch = 16, col="red")
+points(ver.data.div$com.div[19:24],ver.data.div$ver.div[19:24], col="green")
+
+###fitting the models
+#ancova
+ver.anc.div <- lm(ver.div ~ com.div * Month, data = ver.data.div)
+summary(ver.anc.div)
+anova(ver.anc.div)
+
+
+###########FRichness###########################
+
+###functional richness for the 6 communities at the 4 climatic periods##
+ver.tem.ric <- FRic.vector(ver.tem, dyn.traits.cn)
+mean(ver.tem.ric[-7])
+sd(ver.tem.ric[-7])
+month.ver <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.ric.ver <- FRic.vector(community.1, com.traits.1)##riparian community functional diversity
+com.ric.ver <- rep(com.ric.ver, 4)
+ver.data.ric <- data.frame(ver.tem.ric, month.ver, com.ric.ver)##data frame
+colnames(ver.data.ric) <- c("ver.ric", "Month", "com.ric")
+ver.data.ric$Month <- as.factor(ver.data.ric$Month) #month as factor
+
+##Normality
+hist(ver.tem.ric)
+qqnorm(ver.tem.ric)
+qqline(ver.tem.ric)
+shapiro.test(ver.tem.ric)
+
+##plotting
+plot(com.ric.ver, ver.tem.ric, ty="n")
+points(ver.data.ric$com.ric[1:6],ver.data.ric$ver.ric[1:6])
+points(ver.data.ric$com.ric[7:12],ver.data.ric$ver.ric[7:12],pch=16)
+points(ver.data.ric$com.ric[13:18],ver.data.ric$ver.ric[13:18], pch = 16, col="red")
+points(ver.data.ric$com.ric[19:24],ver.data.ric$ver.ric[19:24], col="blue")
+
+###fitting the models
+#ancova
+ver.anc.ric <- lm(ver.ric ~ com.ric * Month, data = ver.data.ric)
+summary(ver.anc.ric)
+anova(ver.anc.ric)
+
+
+###########FEveness###########################
+###functional eveness for the 6 communities at the 4 climatic periods##
+ver.tem.eve <- FEve.vector(ver.tem, dyn.traits.cn)
+mean(ver.tem.eve[-7])
+sd(ver.tem.eve[-7])
+month.ver <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.eve.ver <- FEve.vector(community.1, com.traits.1)##riparian community functional diversity
+com.eve.ver <- rep(com.eve.ver, 4) 
+ver.data.eve <- data.frame(ver.tem.eve, month.ver, com.eve.ver)##data frame
+colnames(ver.data.eve) <- c("ver.eve", "Month", "com.eve")
+ver.data.eve$Month <- as.factor(ver.data.eve$Month) #month as factor
+
+##normality
+hist(ver.tem.eve)
+qqnorm(ver.tem.eve)
+qqline(ver.tem.eve)
+shapiro.test(ver.tem.eve)
+
+##plotting
+plot(com.eve.ver, ver.tem.eve, ty="n")
+points(ver.data.eve$com.eve[1:6],ver.data.eve$ver.eve[1:6])
+points(ver.data.eve$com.eve[7:12],ver.data.eve$ver.eve[7:12],pch=16)
+points(ver.data.eve$com.eve[13:18],ver.data.eve$ver.eve[13:18], pch = 16, col="red")
+points(ver.data.eve$com.eve[19:24],ver.data.eve$ver.eve[19:24], col="blue")
+
+###fitting the models
+#ancova
+ver.anc.eve <- lm(ver.eve ~ com.eve * Month, data = ver.data.eve)
+summary(ver.anc.eve)
+anova(ver.anc.eve)
+
+
+#######simpson
+ver.tem.sim <- diversity(ver.tem, index = "simpson")
+mean(ver.tem.sim)
+sd(ver.tem.sim)
+month.ver <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.sim <- diversity(community.1, index = "simpson")##riparian community simpson
+com.sim.ver <- rep(com.sim, 4)
+ver.data.sim <- data.frame(ver.tem.sim, month.ver, com.sim.ver)##data frame
+colnames(ver.data.sim) <- c("ver.sim", "Month", "com.sim")
+ver.data.sim$Month <- as.factor(ver.data.sim$Month) #month as factor
+
+##normality
+hist(ver.tem.sim)
+qqnorm(ver.tem.sim)
+qqline(ver.tem.sim)
+shapiro.test(ver.tem.sim)
+
+##plotting
+plot(com.sim.ver, ver.tem.sim, ty="n")
+points(ver.data.sim$com.sim[c(1:6)],ver.data.sim$ver.sim[c(1:6)])
+points(ver.data.sim$com.sim[7:12],ver.data.sim$ver.sim[7:12],pch=16)
+points(ver.data.sim$com.sim[13:18],ver.data.sim$ver.sim[13:18], pch = 16, col="red")
+points(ver.data.sim$com.sim[19:24],ver.data.sim$ver.sim[19:24], col="green")
+
+
+###fitting the models
+#ancova
+ver.anc.sim <- lm(ver.sim ~ com.sim * Month, data = ver.data.sim)
+summary(ver.anc.sim)
+anova(ver.anc.sim)
+
+
+###shannon#####
+ver.tem.sha <- diversity(ver.tem, index = "shannon")
+mean(ver.tem.sha)
+sd(ver.tem.sha)
+month.ver <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.sha <- diversity(community.1, index = "shannon")##riparian community shannon
+com.sha.ver <- rep(com.sha, 4)
+ver.data.sha <- data.frame(ver.tem.sha, month.ver, com.sha.ver)##data frame
+colnames(ver.data.sha) <- c("ver.sha", "Month", "com.sha")
+ver.data.sha$Month <- as.factor(ver.data.sha$Month) #month as factor
+
+
+##plotting
+
+plot(com.sha.ver, ver.tem.sha, ty="n")
+points(ver.data.sha$com.sha[c(1:6)],ver.data.sha$ver.sha[c(1:6)])
+points(ver.data.sha$com.sha[7:12],ver.data.sha$ver.sha[7:12],pch=16)
+points(ver.data.sha$com.sha[13:18],ver.data.sha$ver.sha[13:18], pch = 16, col="red")
+points(ver.data.sha$com.sha[19:24],ver.data.sha$ver.sha[19:24], col="green")
+
+###normality
+hist(ver.tem.sha)
+qqnorm(ver.tem.sha)
+qqline(ver.tem.sha)
+shapiro.test(ver.tem.sha)
+
+###fitting the models
+#ancova
+ver.anc.sha <- lm(ver.sha ~ com.sha * Month, data = ver.data.sha)
+summary(ver.anc.sha)
+anova(ver.anc.sha)
