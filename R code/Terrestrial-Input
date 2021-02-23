@@ -1,0 +1,289 @@
+##################################
+###Terrestrial dynamic analysis##
+### species and functional    ##    
+### composition               ##
+################################
+
+library(FD)
+library(ade4)
+library(vegan)
+library(picante)
+library(sp)
+library(rgdal)
+
+###loading terrestrial dynamic matrix####
+terrestrial <- read.table("terrestrial.dyn.txt", sep = "", header = TRUE, row.names = 1)
+
+
+###loading community matrix ###
+community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
+View(community)
+
+##loading community traits###
+com.traits <- read.table("com.traits.txt", sep = "", header = TRUE, row.names = 1)
+View(com.traits)
+rownames(com.traits.1)%in%colnames(community.1)
+
+###without "Geonoma_brevispatha"####
+community.1 <- community[,-17]
+com.traits.1 <- com.traits[-17,]
+
+
+
+##############terrestrial######################
+
+
+###########ANCOVA FOR DIVERSITY colapsing C/N in the dyn.traits#########################
+
+library(tibble)
+library(tidyr)
+library(bbmle)
+ter.tem <- read.table("ter.tem.txt", sep = "", header = TRUE)
+head(ter.tem[,1:2])
+
+ter.tem <- ter.tem %>% `row.names<-`(ter.tem$Community) %>%
+  select(-c(Community, Month, Geonoma_brevispath)) %>%
+  filter_all(any_vars(.>0))###removing communities with no values
+rownames(ter.tem)
+colnames(ter.tem)
+###########Fdivergence###########################
+
+###functional divergence for the 6 communities at the 4 climatic periods##
+##changing the dyn.traits and dividing C between N##
+dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
+  mutate(c.n = C/N)%>%
+  select(-c(C,N))%>%
+  drop_na()%>%
+  column_to_rownames("species")
+
+dyn.traits.cn <- dyn.traits.cn[-11,] ##removing Myrcia_Ilheonsensis
+
+###functional divergence for the 6 communities at the 4 climatic periods##
+ter.tem.div <- FDiv.vector(ter.tem, dyn.traits.cn)
+mean(ter.tem.div[-11])
+sd(ter.tem.div[-11])
+month.ter<- c(rep("january", 5), rep("april", 4), rep("july",5), rep("october", 6))
+com.divergence <- FDiv.vector(community.1, com.traits.1)##riparian community functional diversity
+com.divergence.ter <- c(com.divergence[-1],com.divergence[-c(1,4)], com.divergence[-1], com.divergence)#sorting fdiv values
+ter.data.div <- data.frame(ter.tem.div, month.ter, com.divergence.ter)##data frame
+colnames(ter.data.div) <- c("ter.div", "Month", "com.div")
+ter.data.div$Month <- as.factor(ter.data.div$Month) #month as factor
+
+##normality
+qqnorm(ter.tem.div)
+qqline(ter.tem.div, lty = 2)
+shapiro.test(ter.tem.div)
+
+##plotting
+plot(com.divergence.ter, ter.tem.div, ty="n")
+points(ter.data.div$com.div[1:5],ter.data.div$ter.div[1:5])
+points(ter.data.div$com.div[6:9],ter.data.div$ter.div[6:9],pch=16)
+points(ter.data.div$com.div[10:14],ter.data.div$ter.div[10:14], pch = 16, col="red")
+points(ter.data.div$com.div[15:20],ter.data.div$ter.div[15:20], col="blue")
+
+###fitting the models
+#ancova
+ter.anc.div <- lm(ter.div ~ com.div * Month, data = ter.data.div)
+summary(ter.anc.div)
+anova(ter.anc.div)
+
+###########FRichness###########################
+
+###functional richness for the 6 communities at the 4 climatic periods##
+ter.tem.ric <- FRic.vector(ter.tem, dyn.traits.cn)
+mean(ter.tem.ric[-11])
+sd(ter.tem.ric[-11])
+month.ter<- c(rep("january", 5), rep("april", 4), rep("july",5), rep("october", 6))
+com.richness <- FRic.vector(community.1, com.traits.1)##riparian community functional diversity
+com.richness.ter <- c(com.richness[-1],com.richness[-c(1,4)], com.richness[-1], com.richness)#sorting fdiv values
+ter.data.ric <- data.frame(ter.tem.ric, month.ter, com.richness.ter)##data frame
+colnames(ter.data.ric) <- c("ter.ric", "Month", "com.ric")
+ter.data.ric$Month <- as.factor(ter.data.ric$Month) #month as factor
+
+##normality
+hist(ter.tem.ric)
+qqnorm(ter.tem.ric)
+qqline(ter.tem.ric)
+shapiro.test(log(ter.tem.ric))
+
+##plotting
+plot(com.richness.ter, ter.tem.ric, ty="n")
+points(ter.data.ric$com.ric[1:5],ter.data.ric$ter.ric[1:5])
+points(ter.data.ric$com.ric[6:9],ter.data.ric$ter.ric[6:9],pch=16)
+points(ter.data.ric$com.ric[10:14],ter.data.ric$ter.ric[10:14], pch = 16, col="red")
+points(ter.data.ric$com.ric[15:20],ter.data.ric$ter.ric[15:20], col="blue")
+
+###fitting the models
+#ancova
+ter.anc.ric <- lm(ter.ric ~ com.ric * Month, data = ter.data.ric)
+summary(ter.anc.ric)
+anova(ter.anc.ric)
+
+
+
+###########FEveness###########################
+
+###functional eveness for the 6 communities at the 4 climatic periods##
+ter.tem.eve <- FEve.vector(ter.tem, dyn.traits.cn)
+mean(ter.tem.eve[-11])
+sd(ter.tem.eve[-11])
+month.ter<- c(rep("january", 5), rep("april", 4), rep("july",5), rep("october", 6))
+com.eveness <- FEve.vector(community.1, com.traits.1)##riparian community functional diversity
+com.eveness.ter <- c(com.eveness[-1],com.eveness[-c(1,4)], com.eveness[-1], com.eveness)#sorting fdiv values
+ter.data.eve <- data.frame(ter.tem.eve, month.ter, com.eveness.ter)##data frame
+colnames(ter.data.eve) <- c("ter.eve", "Month", "com.eve")
+ter.data.eve$Month <- as.factor(ter.data.eve$Month) #month as factor
+
+##normality
+hist(ter.tem.eve)
+qqnorm(ter.tem.eve)
+qqline(ter.tem.eve)
+shapiro.test(ter.tem.eve)
+
+##plotting
+plot(com.eveness.ter, ter.tem.eve, ty="n")
+points(ter.data.eve$com.eve[1:5],ter.data.eve$ter.eve[1:5])
+points(ter.data.eve$com.eve[6:9],ter.data.eve$ter.eve[6:9],pch=16)
+points(ter.data.eve$com.eve[10:14],ter.data.eve$ter.eve[10:14], pch = 16, col="red")
+points(ter.data.eve$com.eve[15:20],ter.data.eve$ter.eve[15:20], col="blue")
+
+###fitting the models
+#ancova
+ter.anc.eve <- lm(ter.eve ~ com.eve * Month, data = ter.data.eve)
+summary(ter.anc.eve)
+anova(ter.anc.eve)
+
+
+######Simpson################
+ter.tem.sim<- diversity(ter.tem, index = "simpson")
+mean(ter.tem.sim)
+sd(ter.tem.sim)
+month.ter<- c(rep("january", 5), rep("april", 4), rep("july",5), rep("october", 6))
+com.sim <- diversity(community.1, index = "simpson")##riparian community simpson
+com.sim.ter <- c(com.sim[-1],com.sim[-c(1,4)], com.sim[-1], com.sim)#sorting index values
+ter.data.sim <- data.frame(ter.tem.sim, month.ter, com.sim.ter)##data frame
+colnames(ter.data.sim) <- c("ter.sim", "Month", "com.sim")
+ter.data.sim$Month <- as.factor(ter.data.sim$Month) #month as factor
+ter.data.sim
+climatic.period <- c(rep("rain", 5), rep("rain-dry", 4), rep("dry", 5), rep("dry-rain", 6))
+ter.data.sim$climatic.period <- climatic.period
+ter.data.sim
+##normality
+hist(ter.tem.sim)
+qqnorm(ter.tem.sim)
+qqline(ter.tem.sim, lty = 2)
+shapiro.test(ter.tem.sim)
+
+##plotting
+plot(com.sim.ter, ter.tem.sim, ty="n")
+points(ter.data.sim$com.sim[1:5],ter.data.sim$ter.sim[1:5])
+points(ter.data.sim$com.sim[6:9],ter.data.sim$ter.sim[6:9],pch=16)
+points(ter.data.sim$com.sim[10:14],ter.data.sim$ter.sim[10:14], pch = 16, col="red")
+points(ter.data.sim$com.sim[15:20],ter.data.sim$ter.sim[15:20], col="blue")
+
+###fitting the models
+#ancova
+ter.anc.sim <- lm(ter.sim ~ com.sim * Month, data = ter.data.sim)
+summary(ter.anc.sim)
+anova(ter.anc.sim)
+
+##removing non significant terms
+ter.anc.sim.2 <- update(ter.anc.sim, ~. -com.sim:Month)
+anova(ter.anc.sim, ter.anc.sim.2)
+ter.anc.sim.3 <- update(ter.anc.sim.2, ~. - Month)
+anova(ter.anc.sim, ter.anc.sim.3) ##the model reduction is justified
+anova(ter.anc.sim.3)
+summary(ter.anc.sim.3)
+
+######TI simpson index graphic#######
+library(ggplot2)
+
+##defining fonts, faces and sizes  
+mynamestheme <- theme(legend.title = element_text(family = "serif", size = (10)), 
+                      legend.text = element_text(face = "italic", family = "serif", size = (9)), 
+                      axis.title = element_text(family = "serif", size = (13), face = "bold"),
+                      axis.text = element_text(family = "serif", size = (11)))
+
+##png object
+png("TIsim.png", width = 16, height = 12, units = "cm", pointsize = 8, res = 300)
+
+##ggplot basic information
+ter.simp <- ggplot(data = ter.data.sim, aes(x = com.sim, y = ter.sim))
+##ggplot complement
+
+p = ter.simp+geom_point(size = 3, aes(shape = climatic.period))+
+  labs(x = "Riparian Community Simpson index", 
+       y = "Terrestrial Input Simpson index")+
+  labs(shape = "Climatic Period") + theme_bw() +
+  theme(legend.position = c(0.1,0.15), legend.background = element_rect(fill = "gray87"))+
+  geom_smooth(method = "lm", se = T, colour = "black")
+
+p + mynamestheme
+
+dev.off()
+
+##########shannon#################
+ter.tem.sha<- diversity(ter.tem, index = "shannon")
+mean(ter.tem.sha)
+sd(ter.tem.sha)
+month.ter<- c(rep("january", 5), rep("april", 4), rep("july",5), rep("october", 6))
+com.sha <- diversity(community.1, index = "shannon")##riparian community shannon
+com.sha.ter <- c(com.sha[-1],com.sha[-c(1,4)], com.sha[-1], com.sha)#sorting index values
+ter.data.sha <- data.frame(ter.tem.sha, month.ter, com.sha.ter)##data frame
+colnames(ter.data.sha) <- c("ter.sha", "Month", "com.sha")
+ter.data.sha$Month <- as.factor(ter.data.sha$Month) #month as factor
+climatic.period <- c(rep("rain", 5), rep("rain-dry", 4), rep("dry", 5), rep("dry-rain", 6))
+ter.data.sha$climatic.period <- climatic.period
+
+##normality
+hist(ter.tem.sha)
+qqnorm(ter.tem.sha)
+qqline(ter.tem.sha, lty = 2)
+shapiro.test(ter.tem.sha)
+
+##plotting
+plot(com.sha.ter, ter.tem.sha, ty="n")
+points(ter.data.sha$com.sha[1:5],ter.data.sha$ter.sha[1:5])
+points(ter.data.sha$com.sha[6:9],ter.data.sha$ter.sha[6:9],pch=16)
+points(ter.data.sha$com.sha[10:14],ter.data.sha$ter.sha[10:14], pch = 16, col="red")
+points(ter.data.sha$com.sha[15:20],ter.data.sha$ter.sha[15:20], col="blue")
+
+###fitting the models
+#ancova
+ter.anc.sha <- lm(ter.sha ~ com.sha * Month, data = ter.data.sha)
+summary(ter.anc.sha)
+anova(ter.anc.sha)
+
+##removing non significant terms
+ter.anc.sha.2 <- update(ter.anc.sha, ~. -com.sha:Month)
+anova(ter.anc.sha, ter.anc.sha.2)
+ter.anc.sha.3 <- update(ter.anc.sha.2, ~. - Month)
+anova(ter.anc.sha.2, ter.anc.sha.3) ##the model reduction is justified
+anova(ter.anc.sha.3)
+summary(ter.anc.sha.3)
+
+######TI Shannon index graphic#######
+
+##defining fonts, faces and sizes  
+mynamestheme <- theme(legend.title = element_text(family = "serif", size = (10)), 
+                      legend.text = element_text(face = "italic", family = "serif", size = (9)), 
+                      axis.title = element_text(family = "serif", size = (13), face = "bold"),
+                      axis.text = element_text(family = "serif", size = (11)))
+
+##png object
+png("TIsha.png", width = 16, height = 12, units = "cm", pointsize = 8, res = 300)
+
+##ggplot basic information
+ter.shan <- ggplot(data = ter.data.sha, aes(x = com.sha, y = ter.sha))
+##ggplot complement
+
+p = ter.shan+geom_point(size = 3, aes(shape = climatic.period))+
+  labs(x = "Riparian Community Shannon index", 
+       y = "Terrestrial Input Shannon index")+
+  labs(shape = "Climatic Period") + theme_bw() +
+  theme(legend.position = c(0.1,0.15), legend.background = element_rect(fill = "gray87"))+
+  geom_smooth(method = "lm", se = T, colour = "black")
+
+p + mynamestheme
+
+dev.off()
