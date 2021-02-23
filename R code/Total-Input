@@ -1,0 +1,306 @@
+##################################
+###  Total dynamic analysis    ##
+### functional and classical   ##    
+### indices                    ##
+################################
+
+library(FD)
+library(ade4)
+library(vegan)
+library(picante)
+library(sp)
+library(rgdal)
+library(dplyr)
+library(ggstatsplot)
+
+###loading total dynamic matrix###
+total <- read.table("total.dyn.txt", sep = "", header = TRUE, row.names = 1)
+View(total)
+
+
+
+###loading community matrix ###
+community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
+View(community)
+community.1 <- community[,-17] ###without Geonoma brevispath
+
+
+###########ANCOVA FOR DIVERSITY colapsing C/N in the dyn.traits#########################
+
+library(tibble)
+library(tidyr)
+library(bbmle)
+library(ggplot2)
+tot.tem <- read.table("tot.tem.txt", sep = "", header = TRUE)
+head(tot.tem[,1:2])
+
+tot.tem <- tot.tem %>% `row.names<-`(tot.tem$Community) %>%
+  select(-c(Community, Month, Geonoma_brevispath)) %>%
+  filter_all(any_vars(.>0))###removing communities with no values
+rownames(tot.tem)
+colnames(tot.tem)
+
+
+###########Fdivergence###########################
+
+###functional divergence for the 6 communities at the 4 climatic periods##
+##changing the dyn.traits and dividing C between N##
+dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
+  mutate(c.n = C/N)%>%
+  select(-c(C,N))%>%
+  drop_na()%>%
+  column_to_rownames("species")
+rownames(dyn.traits.cn)
+dyn.traits.cn <- dyn.traits.cn[-11,] ##removing Myrcia_Ilheonsensis
+
+tot.tem.div <- FDiv.vector(tot.tem, dyn.traits.cn)
+mean(tot.tem.div[-7])
+sd(tot.tem.div[-7])
+month.tot <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+climatic <- c(rep("rain", 6), rep("rain-dry", 6), rep("dry",6), rep("dry-rain", 6))
+com.div.tot <- FDiv.vector(community.1, com.traits.1)##riparian community functional diversity
+mean(com.div.tot)
+sd(com.div.tot)
+com.div.tot <- rep(com.div.tot, 4)
+tot.data.div <- data.frame(tot.tem.div, month.tot, com.div.tot)##data frame
+colnames(tot.data.div) <- c("tot.div", "Month", "com.div")
+tot.data.div$Month <- as.factor(tot.data.div$Month) #month as factor
+tot.data.div$climatic.period <- climatic
+
+#######checking normality##########
+hist(tot.tem.div)
+qqnorm(tot.tem.div)
+qqline(tot.tem.div, lty = 2)
+shapiro.test(tot.tem.div)
+
+##plotting
+plot(com.div.tot, tot.tem.div, ty="n")
+
+points(tot.data.div$com.div[1:6],tot.data.div$tot.div[1:6], pch = 2)
+points(tot.data.div$com.div[7:12],tot.data.div$tot.div[7:12], pch = 16, col = "green")
+points(tot.data.div$com.div[13:18],tot.data.div$tot.div[13:18], pch =2, col="red")
+points(tot.data.div$com.div[19:24],tot.data.div$tot.div[19:24], pch = 16)
+
+###fitting the models
+#ancova
+tot.anc.div <- lm(tot.div ~ com.div * Month, data = tot.data.div)
+summary(tot.anc.div)
+anova(tot.anc.div)
+
+##removing non significant terms
+tot.anc.div.2 <- update(tot.anc.div, ~. -Month)
+anova(tot.anc.div, tot.anc.div.2)##reduction is justified
+tot.anc.div.3 <- update(tot.anc.div.2, ~. -com.div:Month)
+anova(tot.anc.div, tot.anc.div.3) ##the model reduction is justified
+anova(tot.anc.div.3)
+summary(tot.anc.div.3)
+
+######ToI FDiv index graphic#######
+
+##defining fonts, faces and sizes  
+mynamestheme <- theme(legend.title = element_text(family = "serif", size = (10)), 
+                      legend.text = element_text(face = "italic", family = "serif", size = (9)), 
+                      axis.title = element_text(family = "serif", size = (13), face = "bold"),
+                      axis.text = element_text(family = "serif", size = (11)))
+
+##png object
+png("ToIFDiv.png", width = 16, height = 12, units = "cm", pointsize = 8, res = 300)
+
+##ggplot basic information
+ToI.fdiv <- ggplot(data = tot.data.div, aes(x = com.div, y = tot.div))
+##ggplot complement
+
+p = ToI.fdiv+geom_point(size = 3, aes(shape = climatic.period))+
+  labs(x = "Riparian Community Functional divergence index", 
+       y = "Total Input Functional divergence index")+
+  labs(shape = "Climatic Period") + theme_bw() +
+  theme(legend.position = c(0.5,0.15), legend.background = element_rect(fill = "gray87"))+
+  geom_smooth(method = "lm", se = T, colour = "black")
+
+p + mynamestheme
+
+dev.off()
+
+
+###########FRichness###########################
+
+###functional richness for the 6 communities at the 4 climatic periods##
+tot.tem.ric <- FRic.vector(tot.tem, dyn.traits.cn)
+mean(tot.tem.ric[-7])
+sd(tot.tem.ric[-7])
+month.tot <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.ric.tot <- FRic.vector(community.1, com.traits.1)##riparian community functional diversity
+mean(com.ric.tot)
+sd(com.ric.tot)
+com.ric.tot <- rep(com.ric.tot, 4)
+tot.data.ric <- data.frame(tot.tem.ric, month.tot, com.ric.tot)##data frame
+colnames(tot.data.ric) <- c("tot.ric", "Month", "com.ric")
+tot.data.ric$Month <- as.factor(tot.data.ric$Month) #month as factor
+
+##normality
+hist(tot.tem.ric)
+qqnorm(tot.tem.ric)
+qqline(tot.tem.ric, lty = 2)
+shapiro.test(tot.tem.ric)
+
+##plotting
+plot(com.ric.tot, tot.tem.ric, ty="n")
+points(tot.data.ric$com.ric[1:6],tot.data.ric$tot.ric[1:6])
+points(tot.data.ric$com.ric[7:12],tot.data.ric$tot.ric[7:12],pch=16)
+points(tot.data.ric$com.ric[13:18],tot.data.ric$tot.ric[13:18], pch = 16, col="red")
+points(tot.data.ric$com.ric[19:24],tot.data.ric$tot.ric[19:24], col="blue")
+
+###fitting the model
+#ancova
+tot.anc.ric <- lm(tot.ric ~ com.ric * Month, data = tot.data.ric)
+summary(tot.anc.ric)
+anova(tot.anc.ric)
+
+
+###########FEveness###########################
+
+###functional eveness for the 6 communities at the 4 climatic periods##
+tot.tem.eve <- FEve.vector(tot.tem, dyn.traits.cn)
+mean(tot.tem.eve[-7])
+sd(tot.tem.eve[-7])
+month.tot <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.eve.tot <- FEve.vector(community.1, com.traits.1)##riparian community functional diversity
+com.eve.tot <- rep(com.eve.tot, 4) 
+mean(com.eve.tot)
+sd(com.eve.tot)
+tot.data.eve <- data.frame(tot.tem.eve, month.tot, com.eve.tot)##data frame
+colnames(tot.data.eve) <- c("tot.eve", "Month", "com.eve")
+tot.data.eve$Month <- as.factor(tot.data.eve$Month) #month as factor
+tot.data.eve$climatic.period <- climatic
+tot.data.eve$climatic.period <- as.factor(tot.data.eve$climatic.period)
+#normality
+hist(tot.tem.eve)
+qqnorm(tot.tem.eve)
+qqline(tot.tem.eve, lty = 2)
+shapiro.test(tot.tem.eve)
+
+##plotting
+plot(com.eve.tot, tot.tem.eve, ty="n")
+points(tot.data.eve$com.eve[1:6],tot.data.eve$tot.eve[1:6])
+points(tot.data.eve$com.eve[7:12],tot.data.eve$tot.eve[7:12],pch=16)
+points(tot.data.eve$com.eve[13:18],tot.data.eve$tot.eve[13:18], pch = 16, col="red")
+points(tot.data.eve$com.eve[19:24],tot.data.eve$tot.eve[19:24], col="blue")
+
+###fitting the models
+#ancova
+tot.anc.eve <- lm(tot.eve ~ com.eve * climatic.period, data = tot.data.eve)
+summary(tot.anc.eve)
+anova(tot.anc.eve)
+
+##removing non significant terms
+tot.anc.eve.2 <- update(tot.anc.eve, ~. -com.eve:climatic.period)
+anova(tot.anc.eve, tot.anc.eve.2)##reduction is justified
+anova(tot.anc.eve.2)
+tot.anc.eve.3 <- update(tot.anc.eve.2, ~. -com.eve)
+
+anova(tot.anc.eve.2, tot.anc.eve.3) ##the model reduction is justified
+anova(tot.anc.eve.3)
+summary(tot.anc.eve.3)
+
+library(multcomp)
+post.tot.eve <- glht(tot.anc.eve.3, linfct = mcp(climatic.period = "Tukey"))
+summary(post.tot.eve) ##october is significant diferently than january and almost different than july
+
+######ToI FEVE index graphic#######
+install.packages("ggsignif")
+library(ggsignif)
+##defining fonts, faces and sizes  
+mynamestheme <- theme(axis.title = element_text(family = "serif", size = (13), face = "bold"),
+                      axis.text = element_text(family = "serif", size = (11)))
+
+##png object
+png("ToIFEve.png", width = 16, height = 12, units = "cm", pointsize = 8, res = 300)
+
+##ggplot basic information
+ToI.feve <- ggplot(data = tot.data.eve, aes(x = climatic.period, y = tot.eve))
+
+##ggplot complement
+x = ToI.feve + geom_boxplot(width=0.3, fill="gray90")
+p = x + labs(x = "Climatic Period", 
+       y = "Total Input Functional Evenness index")+
+  theme_bw() + geom_jitter(shape=16, size = 2, position=position_jitter(0.2))
+
+o = p+geom_signif(comparisons = list(c("dry-rain", "rain")), 
+                map_signif_level=TRUE)
+  
+
+o+mynamestheme
+
+dev.off()
+
+
+
+###########shannon##############
+
+tot.shannon <- diversity(tot.tem, index = "shannon")
+tot.shannon
+mean(tot.shannon)
+sd(tot.shannon)
+month.tot <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.shannon.tot <- diversity(community.1, index = "shannon")##riparian community shannon index
+com.shannon.tot <- rep(com.shannon.tot, 4)
+mean(com.shannon.tot)
+sd(com.shannon.tot)
+
+tot.data.shannon <- data.frame(tot.shannon, month.tot, com.shannon.tot)##data frame
+colnames(tot.data.shannon) <- c("tot.shannon", "Month", "com.shannon")
+tot.data.shannon$Month <- as.factor(tot.data.shannon$Month) #month as factor
+
+##normality
+hist(tot.shannon)
+qqnorm(tot.shannon)
+qqline(tot.shannon)
+shapiro.test(tot.shannon)
+
+
+##plotting
+plot(com.shannon.tot, tot.shannon, ty="n")
+points(tot.data.shannon$com.shannon[1:6],tot.data.shannon$tot.shannon[1:6])
+points(tot.data.shannon$com.shannon[7:12],tot.data.shannon$tot.shannon[7:12],pch=16)
+points(tot.data.shannon$com.shannon[13:18],tot.data.shannon$tot.shannon[13:18], pch = 16, col="red")
+points(tot.data.shannon$com.shannon[19:24],tot.data.shannon$tot.shannon[19:24], col="blue")
+
+###fitting the models
+#ancova
+tot.anc.shannon <- lm(tot.shannon ~ com.shannon * Month, data = tot.data.shannon)
+summary(tot.anc.shannon)
+anova(tot.anc.shannon)
+
+
+##############simpson########
+tot.simpson <- diversity(tot.tem, index = "simpson")
+tot.simpson
+mean(tot.simpson)
+sd(tot.simpson)
+month.tot <- c(rep("january", 6), rep("april", 6), rep("july",6), rep("october", 6))
+com.simpson.tot <- diversity(community.1, index= "simpson")##riparian community simpson index
+mean(com.simpson.tot)
+sd(com.simpson.tot)
+com.simpson.tot <- rep(com.simpson.tot, 4)
+tot.data.sim <- data.frame(tot.simpson, month.tot, com.simpson.tot)##data frame
+colnames(tot.data.sim) <- c("tot.simpson", "Month", "com.simpson")
+tot.data.sim$Month <- as.factor(tot.data.sim$Month) #month as factor
+
+##Normality
+hist(tot.simpson)
+qqnorm(tot.simpson)
+qqline(tot.simpson)
+shapiro.test(tot.simpson)
+
+##plotting
+plot(com.simpson.tot, tot.simpson, ty="n")
+points(tot.data.sim$com.simpson[1:6],tot.data.sim$tot.simpson[1:6])
+points(tot.data.sim$com.simpson[7:12],tot.data.sim$tot.simpson[7:12],pch=16)
+points(tot.data.sim$com.simpson[13:18],tot.data.sim$tot.simpson[13:18], pch = 16, col="red")
+points(tot.data.sim$com.simpson[19:24],tot.data.sim$tot.simpson[19:24], col="blue")
+
+###fitting the models
+#ancova
+tot.anc.sim <- lm(tot.simpson ~ com.simpson * Month, data = tot.data.sim)
+summary(tot.anc.sim)
+anova(tot.anc.sim)
