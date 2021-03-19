@@ -17,13 +17,17 @@ library(ggstatsplot)
 total <- read.table("total.dyn.txt", sep = "", header = TRUE, row.names = 1)
 View(total)
 
-
+###loading dynamic traits###
+dyn.traits <- read.table("dyn.traits.txt", sep = "", header = TRUE, row.names = 1)
+View(dyn.traits)
 
 ###loading community matrix ###
 community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
 View(community)
 
-
+###loading community traits###
+com.traits <- read.table("com.traits.txt", sep = "", header = TRUE, row.names = 1)
+View(com.traits)
 
 ###########ANCOVA FOR DIVERSITY colapsing C/N in the dyn.traits#########################
 
