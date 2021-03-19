@@ -18,13 +18,13 @@ library(dplyr)
 lateral <- read.table("lateral.dyn.txt", sep = "", header = TRUE, row.names = 1)
 View(lateral)
 rownames(lateral)
+
 ###loading dynamic traits###
 dyn.traits <- read.table("dyn.traits.txt", sep = "", header = TRUE, row.names = 1)
 View(dyn.traits)
 
 ###loading community matrix ###
-community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
-View(community)
+community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
 
 ##loading community traits###
 com.traits <- read.table("com.traits.txt", sep = "", header = TRUE, row.names = 1)
@@ -40,11 +40,7 @@ library(bbmle)
 lat.tem <- read.table("lat.tem.txt", sep = "", header = TRUE)
 head(lat.tem[,1:2])
 
-lat.tem <- lat.tem %>% `row.names<-`(lat.tem$Community) %>%
-  select(-c(Community, Month)) %>%
-  filter_all(any_vars(.>0))###removing communities with no values
-rownames(lat.tem)
-colnames(lat.tem)
+
 
 ###########Fdivergence###########################
 
@@ -56,7 +52,6 @@ dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
   drop_na()%>%
   column_to_rownames("species")
 
-dyn.traits.cn <- dyn.traits.cn[-11,] ##removing Myrcia_Ilheonsensis
 
 
 ###data.frame to evaluate data###
