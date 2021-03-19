@@ -16,11 +16,9 @@ vertical <- read.table("vertical.dyn.txt", sep = "", header = TRUE, row.names = 
 View(vertical)
 
 ###loading community matrix ###
-community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
-View(community)
-community.1 <- community[,-17] ###without Geonoma brevispath
+community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
 View(community.1)
-colnames(community)
+
 
 
 
@@ -32,11 +30,7 @@ library(bbmle)
 ver.tem <- read.table("ver.tem.txt", sep = "", header = TRUE)
 head(ver.tem[,1:2])
 
-ver.tem <- ver.tem %>% `row.names<-`(ver.tem$Community) %>%
-  select(-c(Community, Month, Geonoma_brevispath)) %>%
-  filter_all(any_vars(.>0))###removing communities with no values
-rownames(ver.tem)
-colnames(ver.tem)
+
 ###########Fdivergence###########################
 
 ###functional divergence for the 6 communities at the 4 climatic periods##
@@ -47,7 +41,6 @@ dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
   drop_na()%>%
   column_to_rownames("species")
 
-dyn.traits.cn <- dyn.traits.cn[-11,]
 
 
 ###########Fdivergence###########################
