@@ -16,7 +16,7 @@ terrestrial <- read.table("terrestrial.dyn.txt", sep = "", header = TRUE, row.na
 
 
 ###loading community matrix ###
-community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
+community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
 View(community)
 
 ##loading community traits###
