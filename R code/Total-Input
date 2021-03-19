@@ -20,9 +20,9 @@ View(total)
 
 
 ###loading community matrix ###
-community <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
+community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
 View(community)
-community.1 <- community[,-17] ###without Geonoma brevispath
+
 
 
 ###########ANCOVA FOR DIVERSITY colapsing C/N in the dyn.traits#########################
@@ -34,9 +34,7 @@ library(ggplot2)
 tot.tem <- read.table("tot.tem.txt", sep = "", header = TRUE)
 head(tot.tem[,1:2])
 
-tot.tem <- tot.tem %>% `row.names<-`(tot.tem$Community) %>%
-  select(-c(Community, Month, Geonoma_brevispath)) %>%
-  filter_all(any_vars(.>0))###removing communities with no values
+
 rownames(tot.tem)
 colnames(tot.tem)
 
@@ -51,7 +49,7 @@ dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
   drop_na()%>%
   column_to_rownames("species")
 rownames(dyn.traits.cn)
-dyn.traits.cn <- dyn.traits.cn[-11,] ##removing Myrcia_Ilheonsensis
+
 
 tot.tem.div <- FDiv.vector(tot.tem, dyn.traits.cn)
 mean(tot.tem.div[-7])
