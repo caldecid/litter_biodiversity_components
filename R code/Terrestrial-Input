@@ -14,6 +14,9 @@ library(rgdal)
 ###loading terrestrial dynamic matrix####
 terrestrial <- read.table("terrestrial.dyn.txt", sep = "", header = TRUE, row.names = 1)
 
+###loading dynamic traits###
+dyn.traits <- read.table("dyn.traits.txt", sep = "", header = TRUE, row.names = 1)
+View(dyn.traits)
 
 ###loading community matrix ###
 community.1 <- read.table("community.txt", sep = "", header = TRUE, row.names = 1)
