@@ -41,11 +41,7 @@ library(bbmle)
 ter.tem <- read.table("ter.tem.txt", sep = "", header = TRUE)
 head(ter.tem[,1:2])
 
-ter.tem <- ter.tem %>% `row.names<-`(ter.tem$Community) %>%
-  select(-c(Community, Month, Geonoma_brevispath)) %>%
-  filter_all(any_vars(.>0))###removing communities with no values
-rownames(ter.tem)
-colnames(ter.tem)
+
 ###########Fdivergence###########################
 
 ###functional divergence for the 6 communities at the 4 climatic periods##
@@ -56,7 +52,6 @@ dyn.traits.cn <- rownames_to_column(dyn.traits, "species")%>%
   drop_na()%>%
   column_to_rownames("species")
 
-dyn.traits.cn <- dyn.traits.cn[-11,] ##removing Myrcia_Ilheonsensis
 
 ###functional divergence for the 6 communities at the 4 climatic periods##
 ter.tem.div <- FDiv.vector(ter.tem, dyn.traits.cn)
