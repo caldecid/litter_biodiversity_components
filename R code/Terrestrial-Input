@@ -24,10 +24,6 @@ com.traits <- read.table("com.traits.txt", sep = "", header = TRUE, row.names = 
 View(com.traits)
 rownames(com.traits.1)%in%colnames(community.1)
 
-###without "Geonoma_brevispatha"####
-community.1 <- community[,-17]
-com.traits.1 <- com.traits[-17,]
-
 
 
 ##############terrestrial######################
