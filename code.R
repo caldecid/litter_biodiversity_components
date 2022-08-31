@@ -18,7 +18,7 @@ library(xlsx)
 library(gridExtra)
 
 # litter input matrix -----------------------------------------------------
-litter <- read_excel("Riparian_community.xlsx", sheet = "OM_dynamic")
+litter <- read_table("litter_dynamic.txt")
 
 ##separating the variables for the dbFD process
 variables <- litter %>% select(Community, Month, Input, Period, Point)
@@ -34,7 +34,7 @@ variables <- variables[which(rowSums(litter.matrix)>0),]
 
 # litter traits -----------------------------------------------------------
 
-traits <- read_excel("Riparian_community.xlsx", sheet = "litter.traits")
+traits <- read_table("litter_traits.txt")
 
 traits <- as.data.frame(traits)
 
